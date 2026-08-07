@@ -55,7 +55,10 @@ const swaggerUiOptions = {
     'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-standalone-preset.min.js',
     '/custom.js'
   ],
-  swaggerUrl: '/api/swagger.json' // Chỉ định Swagger UI lấy dữ liệu từ API này thay vì truyền cứng
+  swaggerUrl: '/api/swagger.json', // Chỉ định Swagger UI lấy dữ liệu từ API này thay vì truyền cứng
+  swaggerOptions: {
+    supportedSubmitMethods: [] // Ẩn hoàn toàn nút "Try it out" cho mọi method
+  }
 };
 
 // API trả về đoạn script gắn nút Admin vào trang Swagger
