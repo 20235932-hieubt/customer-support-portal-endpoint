@@ -1,4 +1,16 @@
 require('dotenv').config();
+const dns = require('dns');
+
+// Ép Node.js sử dụng DNS của Google (chỉ chạy ở máy tính local) để fix lỗi mạng không đọc được SRV của MongoDB Atlas
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    dns.setServers(['8.8.8.8', '8.8.4.4']);
+    console.log('🛠 Đã cấu hình DNS Google (8.8.8.8) cho project để sửa lỗi MongoDB Local.');
+  } catch (err) {
+    console.error('⚠️ Không thể cài DNS:', err);
+  }
+}
+
 const express = require('express');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
