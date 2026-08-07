@@ -164,8 +164,6 @@ app.get('/admin', async (req, res) => {
         textarea { width: 100%; height: 500px; padding: 12px; font-family: monospace; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical; white-space: pre; }
         button { margin-top: 15px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-right: 10px;}
         button:hover { background: #0056b3; }
-        .btn-danger { background: #dc3545; }
-        .btn-danger:hover { background: #c82333; }
         #message { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
         .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
@@ -176,7 +174,6 @@ app.get('/admin', async (req, res) => {
       <p>Dưới đây là nội dung API hiện tại. Bạn có thể chỉnh sửa trực tiếp và lưu lại.</p>
       <textarea id="yamlInput" spellcheck="false">${escapedYaml}</textarea><br>
       <button onclick="updateSwagger()">Cập nhật API</button>
-      <button class="btn-danger" onclick="deleteSwagger()">Khôi phục bản gốc (Xóa trên DB)</button>
       <div id="message"></div>
 
       <script>
@@ -218,36 +215,11 @@ app.get('/admin', async (req, res) => {
             msgDiv.textContent = 'Lỗi mạng: ' + err.message;
           }
         }
-
-        async function deleteSwagger() {
-          if (!confirm('Bạn có chắc chắn muốn xóa bản cập nhật trên Database và quay về bản gốc trong file code không?')) return;
-          try {
-            const res = await fetch('/api/swagger', { method: 'DELETE' });
-            if (res.ok) {
-              window.location.reload();
-            } else {
-              alert('Có lỗi xảy ra khi xóa!');
-            }
-          } catch(e) {
-            alert('Lỗi mạng: ' + e.message);
-          }
-        }
       </script>
     </body>
     </html>
   `;
   res.send(html);
-});
-
-// API Xóa cấu hình trên MongoDB
-app.delete('/api/swagger', async (req, res) => {
-  try {
-    await SwaggerDoc.deleteMany({});
-    res.json({ success: true, message: 'Deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting swagger:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
 });
 
 // 4. Phục vụ giao diện Swagger UI ở trang chủ (/)
