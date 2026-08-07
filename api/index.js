@@ -132,7 +132,25 @@ app.post('/api/swagger', async (req, res) => {
 });
 
 // 3. API giao diện Admin để cập nhật Swagger YAML
-app.get('/admin', (req, res) => {
+app.get('/admin', async (req, res) => {
+  let currentYaml = '';
+  try {
+    const doc = await SwaggerDoc.findOne();
+    if (doc && doc.content) {
+      currentYaml = doc.content;
+    } else {
+      const localFilePath = path.join(__dirname, '..', 'swagger.yaml');
+      if (fs.existsSync(localFilePath)) {
+        currentYaml = fs.readFileSync(localFilePath, 'utf8');
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching current YAML for admin:', err);
+  }
+
+  // Chống lỗi hiển thị HTML khi nạp vào textarea
+  const escapedYaml = currentYaml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -141,11 +159,13 @@ app.get('/admin', (req, res) => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Update Swagger API</title>
       <style>
-        body { font-family: system-ui, -apple-system, sans-serif; background: #f4f4f9; padding: 20px; max-width: 800px; margin: 0 auto; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f4f4f9; padding: 20px; max-width: 900px; margin: 0 auto; }
         h1 { color: #333; }
-        textarea { width: 100%; height: 400px; padding: 12px; font-family: monospace; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical; }
-        button { margin-top: 15px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        textarea { width: 100%; height: 500px; padding: 12px; font-family: monospace; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical; white-space: pre; }
+        button { margin-top: 15px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-right: 10px;}
         button:hover { background: #0056b3; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
         #message { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
         .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
@@ -153,9 +173,10 @@ app.get('/admin', (req, res) => {
     </head>
     <body>
       <h1>Cập nhật Swagger (YAML)</h1>
-      <p>Dán nội dung YAML mới vào bên dưới và nhấn Cập nhật. Lưu ý: Cần kết nối MongoDB để hệ thống lưu lại.</p>
-      <textarea id="yamlInput" placeholder="openapi: 3.0.0\ninfo:\n  title: Sample API\n..."></textarea><br>
+      <p>Dưới đây là nội dung API hiện tại. Bạn có thể chỉnh sửa trực tiếp và lưu lại.</p>
+      <textarea id="yamlInput" spellcheck="false">${escapedYaml}</textarea><br>
       <button onclick="updateSwagger()">Cập nhật API</button>
+      <button class="btn-danger" onclick="deleteSwagger()">Khôi phục bản gốc (Xóa trên DB)</button>
       <div id="message"></div>
 
       <script>
@@ -171,6 +192,8 @@ app.get('/admin', (req, res) => {
           }
 
           msgDiv.style.display = 'none';
+          msgDiv.textContent = 'Đang lưu...';
+          msgDiv.style.display = 'block';
 
           try {
             const res = await fetch('/api/swagger', {
@@ -194,14 +217,37 @@ app.get('/admin', (req, res) => {
             msgDiv.className = 'error';
             msgDiv.textContent = 'Lỗi mạng: ' + err.message;
           }
-          
-          msgDiv.style.display = 'block';
+        }
+
+        async function deleteSwagger() {
+          if (!confirm('Bạn có chắc chắn muốn xóa bản cập nhật trên Database và quay về bản gốc trong file code không?')) return;
+          try {
+            const res = await fetch('/api/swagger', { method: 'DELETE' });
+            if (res.ok) {
+              window.location.reload();
+            } else {
+              alert('Có lỗi xảy ra khi xóa!');
+            }
+          } catch(e) {
+            alert('Lỗi mạng: ' + e.message);
+          }
         }
       </script>
     </body>
     </html>
   `;
   res.send(html);
+});
+
+// API Xóa cấu hình trên MongoDB
+app.delete('/api/swagger', async (req, res) => {
+  try {
+    await SwaggerDoc.deleteMany({});
+    res.json({ success: true, message: 'Deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting swagger:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 // 4. Phục vụ giao diện Swagger UI ở trang chủ (/)
