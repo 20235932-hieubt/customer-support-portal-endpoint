@@ -41,10 +41,38 @@ const swaggerUiOptions = {
   customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui.min.css',
   customJs: [
     'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-bundle.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-standalone-preset.min.js'
+    'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-standalone-preset.min.js',
+    '/custom.js'
   ],
   swaggerUrl: '/api/swagger.json' // Chỉ định Swagger UI lấy dữ liệu từ API này thay vì truyền cứng
 };
+
+// API trả về đoạn script gắn nút Admin vào trang Swagger
+app.get('/custom.js', (req, res) => {
+  res.type('application/javascript');
+  res.send(`
+    window.addEventListener('load', function() {
+      const btn = document.createElement('a');
+      btn.href = '/admin';
+      btn.textContent = 'Trang Admin (Cập nhật API)';
+      btn.style.position = 'fixed';
+      btn.style.bottom = '20px';
+      btn.style.right = '20px';
+      btn.style.padding = '12px 24px';
+      btn.style.background = '#007bff';
+      btn.style.color = '#ffffff';
+      btn.style.borderRadius = '50px';
+      btn.style.textDecoration = 'none';
+      btn.style.zIndex = '9999';
+      btn.style.fontWeight = 'bold';
+      btn.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
+      btn.style.transition = 'background 0.3s';
+      btn.onmouseover = () => btn.style.background = '#0056b3';
+      btn.onmouseout = () => btn.style.background = '#007bff';
+      document.body.appendChild(btn);
+    });
+  `);
+});
 
 // 1. API lấy JSON Spec (Swagger UI sẽ gọi API này)
 app.get('/api/swagger.json', async (req, res) => {
