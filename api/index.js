@@ -23,11 +23,22 @@ const app = express();
 app.use(express.text({ type: ['application/yaml', 'text/yaml', 'text/plain'], limit: '5mb' }));
 app.use(express.json());
 
-// MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/swagger-api-spec';
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// Serverless MongoDB Connection Pattern
+let isConnected = false;
+async function connectToDatabase() {
+  if (isConnected) return;
+  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/swagger-api-spec';
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000, // Timeout sau 5s nếu không kết nối được
+    });
+    isConnected = true;
+    console.log('Connected to MongoDB');
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+    throw err; // Ném lỗi để API biết mà xử lý
+  }
+}
 
 // Mongoose Model for Swagger Spec
 const SwaggerSchema = new mongoose.Schema({
@@ -77,6 +88,7 @@ app.get('/custom.js', (req, res) => {
 // 1. API lấy JSON Spec (Swagger UI sẽ gọi API này)
 app.get('/api/swagger.json', async (req, res) => {
   try {
+    await connectToDatabase();
     let doc = await SwaggerDoc.findOne();
     let yamlContent = '';
 
@@ -117,6 +129,7 @@ app.post('/api/swagger', async (req, res) => {
       return res.status(400).json({ error: 'Invalid YAML format', details: parseError.message });
     }
 
+    await connectToDatabase();
     // Upsert (Tìm và update bản ghi đầu tiên, hoặc tạo mới nếu chưa có)
     await SwaggerDoc.findOneAndUpdate(
       {}, 
@@ -135,6 +148,7 @@ app.post('/api/swagger', async (req, res) => {
 app.get('/admin', async (req, res) => {
   let currentYaml = '';
   try {
+    await connectToDatabase();
     const doc = await SwaggerDoc.findOne();
     if (doc && doc.content) {
       currentYaml = doc.content;
