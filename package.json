@@ -1,0 +1,14 @@
+{
+  "name": "api-spec-server",
+  "version": "1.0.0",
+  "description": "API Documentation Server for Vercel",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "swagger-ui-express": "^5.0.0",
+    "yamljs": "^0.3.0"
+  }
+}

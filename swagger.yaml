@@ -1,0 +1,195 @@
+openapi: 3.0.0
+info:
+  title: Vbee AIVoice CMS API - Support Tickets
+  version: 1.0.0
+  description: API lấy thông tin chi tiết của một Support Ticket
+paths:
+  /support-tickets/{id}:
+    get:
+      summary: Lấy chi tiết Support Ticket
+      description: |
+        Lấy thông tin chi tiết của một Support Ticket dựa trên ID. 
+        **Yêu cầu quyền hạn**: Chỉ có người tạo ticket (Owner) hoặc nhân viên CS (Customer Service có role `VIEW_SUPPORT_TICKETS`) mới có quyền truy cập thông tin này.
+      tags:
+        - Support Tickets
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            example: "64a2c5b3d9e8b7c6f5a43210"
+          description: ID (ObjectId) của Support Ticket
+      responses:
+        "200":
+          description: Thành công. Trả về thông tin chi tiết của Support Ticket.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    description: Trạng thái thành công
+                    example: 1
+                  ticket:
+                    $ref: "#/components/schemas/SupportTicket"
+        "401":
+          description: Unauthorized - Lỗi xác thực (Token không hợp lệ, hết hạn hoặc không được cung cấp).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 0
+                code: 401
+                message: "Unauthorized"
+        "403":
+          description: Forbidden - Không có quyền truy cập (Không phải người tạo ticket hoặc không phải CS).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 0
+                code: 403
+                message: "You do not have permission to view this ticket"
+        "404":
+          description: Not Found - Không tìm thấy Support Ticket.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 0
+                code: 404
+                message: "Support ticket not found"
+        "500":
+          description: Internal Server Error.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Sử dụng Access Token để xác thực người dùng.
+
+  schemas:
+    SupportTicket:
+      type: object
+      description: Thông tin chi tiết của Support Ticket.
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+          example: "64a2c5b3d9e8b7c6f5a43210"
+        userId:
+          type: string
+          description: ID của người dùng (nếu có đăng nhập)
+          example: "user-123456"
+        jira:
+          type: object
+          description: Thông tin liên kết với Jira
+          properties:
+            issueKey:
+              type: string
+              example: "VOPS-123"
+            status:
+              type: string
+              example: "To Do"
+        type:
+          type: string
+          description: Loại ticket hỗ trợ
+          example: "ERROR_REPORT"
+        email:
+          type: string
+          format: email
+          description: Email liên hệ của người gửi ticket
+          example: "customer@example.com"
+        phoneNumber:
+          type: string
+          description: Số điện thoại liên hệ
+          example: "0987654321"
+        platform:
+          type: string
+          description: Nền tảng gặp vấn đề
+          example: "WEB"
+        category:
+          type: string
+          description: Danh mục hỗ trợ
+          example: "PAYMENT_ISSUE"
+        title:
+          type: string
+          description: Tiêu đề ticket
+          example: "Lỗi không thanh toán được qua VNPay"
+        description:
+          type: string
+          description: Nội dung chi tiết vấn đề
+          example: "Khi tôi bấm thanh toán, hệ thống báo lỗi timeout và không chuyển hướng sang trang VNPay."
+        attachments:
+          type: array
+          description: Danh sách file đính kèm
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                example: "64a2c5b3d9e8b7c6f5a43211"
+              link:
+                type: string
+                format: uri
+                example: "https://cdn.vbee.vn/uploads/error_screenshot.png"
+              name:
+                type: string
+                example: "error_screenshot.png"
+              size:
+                type: integer
+                description: Kích thước file (bytes)
+                example: 1048576
+        metadata:
+          type: object
+          description: Các siêu dữ liệu bổ sung khác
+          additionalProperties: true
+          example:
+            browser: "Chrome 114"
+            os: "Windows 10"
+        surveyResponse:
+          type: object
+          description: Phản hồi khảo sát của khách hàng sau khi xử lý xong (nếu có)
+          properties:
+            isSatisfied:
+              type: boolean
+              example: true
+            reason:
+              type: string
+              example: "GOOD_SUPPORT"
+            feedback:
+              type: string
+              example: "Nhân viên hỗ trợ nhiệt tình, nhanh chóng."
+        createdAt:
+          type: string
+          format: date-time
+          description: Thời gian tạo ticket
+          example: "2024-01-15T08:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Thời gian cập nhật ticket gần nhất
+          example: "2024-01-15T09:15:00Z"
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          description: Trạng thái (thường là 0 cho lỗi, 1 cho thành công)
+          example: 0
+        code:
+          type: integer
+          description: Mã lỗi ứng dụng hoặc HTTP Status Code
+        message:
+          type: string
+          description: Thông điệp lỗi
