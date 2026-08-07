@@ -181,9 +181,10 @@ app.get('/admin', async (req, res) => {
         textarea { width: 100%; height: 500px; padding: 12px; font-family: monospace; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical; white-space: pre; }
         button { margin-top: 15px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-right: 10px;}
         button:hover { background: #0056b3; }
-        #message { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
-        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        #toast { position: fixed; top: 20px; right: -400px; max-width: 350px; padding: 15px 20px; border-radius: 8px; background: #4caf50; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: right 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); z-index: 10000; font-weight: 500; display: flex; align-items: center; gap: 10px; }
+        #toast.show { right: 20px; }
+        #toast.error { background: #f44336; }
+        #toast a { color: white; text-decoration: underline; font-weight: bold; }
       </style>
     </head>
     <body>
@@ -191,23 +192,27 @@ app.get('/admin', async (req, res) => {
       <p>Dưới đây là nội dung API hiện tại. Bạn có thể chỉnh sửa trực tiếp và lưu lại.</p>
       <textarea id="yamlInput" spellcheck="false">${escapedYaml}</textarea><br>
       <button onclick="updateSwagger()">Cập nhật API</button>
-      <div id="message"></div>
+      <div id="toast"></div>
 
       <script>
+        function showToast(message, isError = false) {
+          const toast = document.getElementById('toast');
+          toast.innerHTML = message;
+          if (isError) toast.classList.add('error');
+          else toast.classList.remove('error');
+          toast.classList.add('show');
+          setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
         async function updateSwagger() {
           const yamlContent = document.getElementById('yamlInput').value;
-          const msgDiv = document.getElementById('message');
           
           if (!yamlContent.trim()) {
-            msgDiv.className = 'error';
-            msgDiv.textContent = 'Vui lòng nhập nội dung YAML!';
-            msgDiv.style.display = 'block';
+            showToast('Vui lòng nhập nội dung YAML!', true);
             return;
           }
 
-          msgDiv.style.display = 'none';
-          msgDiv.textContent = 'Đang lưu...';
-          msgDiv.style.display = 'block';
+          showToast('Đang lưu...');
 
           try {
             const res = await fetch('/api/swagger', {
@@ -221,15 +226,12 @@ app.get('/admin', async (req, res) => {
             const data = await res.json();
             
             if (res.ok) {
-              msgDiv.className = 'success';
-              msgDiv.innerHTML = data.message + ' <a href="/" target="_blank">Xem ngay</a>';
+              showToast('✅ Cập nhật thành công! <a href="/" target="_blank">Xem ngay</a>');
             } else {
-              msgDiv.className = 'error';
-              msgDiv.textContent = data.error + (data.details ? ': ' + data.details : '');
+              showToast('❌ Lỗi: ' + data.error + (data.details ? ': ' + data.details : ''), true);
             }
           } catch (err) {
-            msgDiv.className = 'error';
-            msgDiv.textContent = 'Lỗi mạng: ' + err.message;
+            showToast('❌ Lỗi mạng: ' + err.message, true);
           }
         }
       </script>
